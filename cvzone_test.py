@@ -7,7 +7,7 @@ from fer import FER
 from util import getDominantEmotion, getEyeImage, blob_process, eyeRatio, calibration
 
 #capture video from webcam
-cap = cv2.VideoCapture("test.MOV")
+cap = cv2.VideoCapture(1)
 
 #face detector
 detector = FaceMeshDetector(maxFaces = 1)
@@ -19,7 +19,7 @@ plotY = LivePlot(640, 360, [20, 50], invert = True)
 plotFace = LivePlot(640, 360, [30,40], invert = True)
 
 #additional eye contraint = 144, 145, top eyebrow = 27, 28, 29
-idListLeft = [22, 23, 24, 27, 28, 29, 155, 157, 158, 159, 160, 130, 243]  
+idListLeft = [22, 23, 24, 155, 157, 158, 159, 160, 130, 243]  
 
 blinkCounter = 0
 calibList = []
@@ -86,13 +86,14 @@ while True:
                 blinkCounter += 1
             elif counter == 0 and eyeImg.shape[0] > 0 and eyeImg.shape[1] > 0:
                 
-                #perform calibration on eyeRatio and eyeArea
+                #perform calibration on eyeRatio and eyeArea when eye is not blinking
                 threshold_frame = calibration(cv2.resize(getEyeImage(img, minX, minY, maxX, maxY), (640, 360)))
                 calibList.append([ratio, threshold_frame])
-                if len(calibList) > 8:
+                if len(calibList) > 5:
                     calibList.pop(0)
-                    eyeRatio_avg = np.sum(calibList, axis = 0)[0] / 8
-                    threshold = np.sum(calibList, axis = 0)[1] / 8
+                    eyeRatio_avg = np.sum(calibList, axis = 0)[0] / 5
+                    threshold = np.sum(calibList, axis = 0)[1] / 5
+
             counter = 0
 
         

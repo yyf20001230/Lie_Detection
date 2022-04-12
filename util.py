@@ -19,7 +19,8 @@ def getDominantEmotion(img, emo_detector):
 
 #get eye image
 def getEyeImage(img, minX, minY, maxX, maxY):
-    return img[minY : maxY, minX : maxX]
+    #return minY - 10 to ensure that entire eye is captured
+    return img[minY - 10 : maxY, minX : maxX]
 
 
 #get eyeball
@@ -39,9 +40,7 @@ def eyeRatio(face, detector):
 
 #calibrate the best threshold
 def calibration(img):
-    return 55
 
-    '''
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kernel = np.ones((3,3), np.uint8)
     img = cv2.bilateralFilter(img, 10, 15, 15)
@@ -50,16 +49,12 @@ def calibration(img):
     threshold_window = []
     
     #return the threshold that matches the best with the true pupil pixel ratio
-    for i in (30, 100, 5):
-        _, img = cv2.threshold(img, i, 255, cv2.THRESH_BINARY_INV)
-        contours, _  = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for i in range(20, 70, 5):
+        _, new_img = cv2.threshold(img, i, 255, cv2.THRESH_BINARY_INV)
+        contours, _  = cv2.findContours(new_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours  = sorted(contours, key = cv2.contourArea, reverse = True)
         if len(contours) > 0:
-            threshold_window.append(abs(15000 - cv2.contourArea(contours[0])))
+            threshold_window.append(abs(cv2.contourArea(contours[0]) - 20000))
         else:
             threshold_window.append(15000)
-    print(threshold_window)
-    value = threshold_window.index(min(threshold_window)) * 5 + 30
-    print(value)
-    return value
-    '''
+    return threshold_window.index(min(threshold_window)) * 5 + 20
