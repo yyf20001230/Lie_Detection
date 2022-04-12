@@ -1,40 +1,33 @@
 import cv2
 import cvzone
+import numpy as np
 from cvzone.FaceMeshModule import FaceMeshDetector
 from cvzone.PlotModule import LivePlot
 from fer import FER
+from util import getDominantEmotion, getEyeImage, blob_process, eyeRatio, calibration
 
-cap = cv2.VideoCapture(1)
+#capture video from webcam
+cap = cv2.VideoCapture("test.MOV")
+
+#face detector
 detector = FaceMeshDetector(maxFaces = 1)
+
+#emotional detector
 emo_detector = FER(mtcnn = True)
+
 plotY = LivePlot(640, 360, [20, 50], invert = True)
-plotFace = LivePlot(640, 360, [300, 400], invert = True)
+plotFace = LivePlot(640, 360, [30,40], invert = True)
 
+#additional eye contraint = 144, 145, top eyebrow = 27, 28, 29
+idListLeft = [22, 23, 24, 27, 28, 29, 155, 157, 158, 159, 160, 130, 243]  
 
-idList = [22, 24, 158, 160, 130, 243]
-calibList = []
 blinkCounter = 0
+calibList = []
+eyeRatio_avg = 35
 counter = 0
+threshold = 55
 captured_emotions = []
 dominant_emotion = ""
-
-def getDominantEmotion(img):
-    try:
-        dominant_emotion, emotion_score = emo_detector.top_emotion(img)
-        captured_emotions = emo_detector.detect_emotions(img)[0]["emotions"]
-        captured_emotions_list = sorted(captured_emotions, key = captured_emotions.get, reverse = True)
-        print(captured_emotions)
-    except Exception as e:
-        print(e)
-        dominant_emotion = ""
-        captured_emotions = ""
-        captured_emotions_list = []
-    
-    return dominant_emotion, captured_emotions, captured_emotions_list
-
-
-def eyeRatio(face):
-    return (detector.findDistance(face[158], face[22])[0] + detector.findDistance(face[160], face[24])[0]) / detector.findDistance(face[130], face[243])[0] / 2 * 100
 
 while True:
      
@@ -42,40 +35,69 @@ while True:
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     
     success, img = cap.read()
-    img, faces = detector.findFaceMesh(img, draw = True)
+    img, faces = detector.findFaceMesh(img, draw = False)
 
     if faces:
+
         face = faces[0]
-        for id in idList:
-            cv2.circle(img, face[id], 5, (255, 0, 255), cv2.FILLED)
 
-        leftUp = face[159]
-        leftDown = face[23]
-        leftLeft = face[130]
-        leftRight = face[243]
+        #for id in idListLeft:
+        #    cv2.circle(img, face[id], 5, (255, 0, 255), cv2.FILLED)
 
-        cv2.circle(img, face[152], 5, (255, 0, 255), cv2.FILLED)
-        cv2.circle(img, face[10], 5, (255, 0, 255), cv2.FILLED)
+        #detecting face orientation
+        #cv2.circle(img, face[152], 5, (255, 0, 255), cv2.FILLED)   #top
+        #cv2.circle(img, face[10], 5, (255, 0, 255), cv2.FILLED)    #down
+        #cv2.circle(img, face[4], 5, (255, 0, 255), cv2.FILLED)     #mid
+
+
+        #eye tracking
+        minY = float('inf')
+        maxY = 0
+        minX = float('inf')
+        maxX = 0
+        for id in idListLeft:
+            if face[id][1] < minY:
+                minY = face[id][1]
+            if face[id][1] > maxY:
+                maxY = face[id][1]
+            if face[id][0] < minX:
+                minX = face[id][0]
+            if face[id][0] > maxX:
+                maxX = face[id][0]
+
+        eyeImg = getEyeImage(img, minX, minY, maxX, maxY)
+        eyeArea = 0
+        if eyeImg.shape[0] > 0 and eyeImg.shape[1] > 0:
+            eyeImg = cv2.resize(eyeImg, (640, 360))
+            _, contour = blob_process(eyeImg, threshold)
+            if len(contour) != 0:
+                eyeArea = cv2.contourArea(contour[0])
+                cvzone.putTextRect(eyeImg, f'EyeArea: {eyeArea}', (50,100))
+            for cnt in contour:
+                cv2.drawContours(eyeImg, [cnt], -1, (0, 0, 255), 3)
+
         dist = detector.findDistance(face[152], face[10])[0]
+        ratio = eyeRatio(face, detector)
 
-        cv2.line(img, leftUp, leftDown, (0, 200, 0), 3)
-        cv2.line(img, leftLeft, leftRight, (0, 200, 0), 3)
-
-        #if cap.get(cv2.CAP_PROP_POS_FRAMES) % 60 == 0:
-        #    dominant_emotion, captured_emotions, captured_emotions_list = getDominantEmotion(img)
-
-        ratio = eyeRatio(face)
-        calibList.append(ratio)
-        if len(calibList) > 12:
-            calibList.pop(0)
-        calibAvg = sum(calibList) / len(calibList)
-        if ratio < 35 and counter == 0:
-            blinkCounter += 1
-            counter = 1
-        if counter != 0:
+        if ratio < eyeRatio_avg * 0.95 and eyeArea < 15000:
             counter += 1
-            if counter > 10:
-                counter = 0
+        else:
+            if counter != 0:
+                blinkCounter += 1
+            elif counter == 0 and eyeImg.shape[0] > 0 and eyeImg.shape[1] > 0:
+                
+                #perform calibration on eyeRatio and eyeArea
+                threshold_frame = calibration(cv2.resize(getEyeImage(img, minX, minY, maxX, maxY), (640, 360)))
+                calibList.append([ratio, threshold_frame])
+                if len(calibList) > 8:
+                    calibList.pop(0)
+                    eyeRatio_avg = np.sum(calibList, axis = 0)[0] / 8
+                    threshold = np.sum(calibList, axis = 0)[1] / 8
+            counter = 0
+
+        
+        #if cap.get(cv2.CAP_PROP_POS_FRAMES) % 60 == 0:
+        #    dominant_emotion, captured_emotions, captured_emotions_list = getDominantEmotion(img, emo_detector)    
 
         cvzone.putTextRect(img, f'Blink count: {blinkCounter}', (50,100))
         if dominant_emotion != "" and captured_emotions != []:
@@ -84,15 +106,20 @@ while True:
                 cvzone.putTextRect(img, f'{emotion}: {captured_emotions[emotion]}', (50, 200 + captured_emotions_list.index(emotion) * 50))
 
         imgPlot = plotY.update(ratio)
-        facePlot = plotFace.update(dist)
+        facePlot = plotFace.update(eyeRatio_avg)
         img = cv2.resize(img, (640, 360))
-        imgStack = cvzone.stackImages([img, imgPlot], 2, 1)
-        
 
+        if eyeImg.shape[0] > 0 and eyeImg.shape[1] > 0:
+            imgStack = cvzone.stackImages([img, imgPlot], 2, 1)
+            imgStack2 = cvzone.stackImages([eyeImg, facePlot], 2, 1)
+            imgStack = cvzone.stackImages([imgStack, imgStack2], 1, 1)
+        else:
+            imgStack = cvzone.stackImages([img, imgPlot], 2, 1)
+        
     else:
         imgStack = cvzone.stackImages([img, img], 2, 1) 
 
-    imgStack = cv2.resize(imgStack, (2560, 720))
+    imgStack = cv2.resize(imgStack, (2560, 1440))
     cv2.imshow("Img", imgStack)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
