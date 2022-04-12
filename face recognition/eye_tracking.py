@@ -89,10 +89,11 @@ while True:
                 #perform calibration on eyeRatio and eyeArea when eye is not blinking
                 threshold_frame = calibration(cv2.resize(getEyeImage(img, minX, minY, maxX, maxY), (640, 360)))
                 calibList.append([ratio, threshold_frame])
-                if len(calibList) > 5:
+                if len(calibList) > 10:
                     calibList.pop(0)
-                    eyeRatio_avg = np.sum(calibList, axis = 0)[0] / 5
-                    threshold = np.sum(calibList, axis = 0)[1] / 5
+                    eyeRatio_avg = np.sum(calibList, axis = 0)[0] / len(calibList)
+                    threshold = np.sum(calibList, axis = 0)[1] / len(calibList)
+                    print(threshold)
 
             counter = 0
 

@@ -159,8 +159,9 @@ def test_model():
         try:
             path = path.strip()
             sr, audio = read(source + path)
-            vector = extract_features(audio, sr)
-        except:
+            vector = extract_features(audio)
+        except Exception as e:
+            print(e)
             print("error: " + path + " not found")
             continue
 
