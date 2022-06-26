@@ -1,0 +1,108 @@
+import cv2
+import numpy as np
+import cvzone
+from scipy.spatial.transform import Rotation as R
+from cvzone.FaceMeshModule import FaceMeshDetector
+
+# Read Image
+cap = cv2.VideoCapture(1)
+detector = FaceMeshDetector(maxFaces = 1)
+
+# 3D model points.
+model_points = np.array([
+                            (0.0, 0.0, 0.0),             # Nose tip
+                            (0.0, -330.0, -65.0),        # Chin
+                            (-75.0, 170.0, -135.0),     # Left eye right corner
+                            (75.0, 170.0, -135.0),      # Right eye left corner
+                            (-225, 170, -135),          # Left eye left corner
+                            (225, 170, -135),           # Right eye right corner
+                            (-150.0, -150.0, -125.0),    # Left Mouth corner
+                            (150.0, -150.0, -125.0),     # Right mouth corner
+                            (0, 170, -65),               # Middle of eye
+                            (0, 300, -50)                # Top of head
+
+                        ])
+
+while True:
+
+    success, img = cap.read()
+    img, faces = detector.findFaceMesh(img, draw = False)
+    size = img.shape
+
+    if faces:
+        face = faces[0]
+
+        #2D image points detected from face
+        image_points = np.array([
+                                (face[4][0],  face[4][1]),       # Nose tip
+                                (face[152][0], face[152][1]),    # Chin
+                                (face[155][0],face[155][1]),     # Left eye right corner
+                                (face[362][0],face[362][1]),     # Right eye left corner
+                                (face[130][0],face[130][1]),     # Left eye left corner
+                                (face[263][0],face[263][1]),     # Right eye right corner
+                                (face[61][0], face[61][1]),      # Left Mouth corner
+                                (face[291][0],face[291][1]),     # Right mouth corner
+                                (face[6][0], face[6][1]),        # Middle of eye
+                                (face[9][0], face[9][1])         # Top of head
+                            ], dtype="double")
+
+        # Camera internals
+        focal_length = size[1]
+        center = (size[1]/2, size[0]/2)
+        camera_matrix = np.array([[focal_length, 0, center[0]],[0, focal_length, center[1]],[0, 0, 1]], dtype = "double")
+        dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
+        (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
+
+        #print (camera_matrix)
+        #print (rotation_vector)
+        #print (translation_vector)
+
+        # Project a 3D point (0, 0, 1000.0) onto the image plane.
+        # We use this to draw a line sticking out of the nose
+
+        (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000)]), rotation_vector, translation_vector, camera_matrix, dist_coeffs)
+
+        for p in image_points:
+            cv2.circle(img, (int(p[0]), int(p[1])), 3, (0,0,255), -1)
+
+        p1 = ( int(image_points[0][0]), int(image_points[0][1]))
+        p2 = ( int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+
+        cv2.line(img, p1, p2, (255,0,0), 2)
+
+        q = np.array([rotation_vector[0][0], rotation_vector[1][0], rotation_vector[2][0]])
+        r = R.from_rotvec(q)
+        r = r.as_euler('xyz', degrees=True)
+        if r[0] < 0:
+            r[0] = r[0] + 360
+        r[0] = -r[0] + 180
+        if r[0] > 90:
+            r[0] = r[0] - 180
+        elif r[0] < -90:
+            r[0] = r[0] + 180
+        if r[2] > 90:
+            r[2] = r[2] - 180
+        elif r[2] < -90:
+            r[2] = r[2] + 180
+        r[2] = -r[2]
+        if np.abs(r[1] < 70):
+            cvzone.putTextRect(img, f'vertical: {int(r[0])}', (50,150))
+            cvzone.putTextRect(img, f'horizontal: {int(r[1])}', (50,200))
+            cvzone.putTextRect(img, f'tilt: {int(r[2])}', (50,250))
+
+        # Display image
+        cv2.imshow("Output", img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        
+#https://learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
+
+
+
+
+
+
+
+
+
