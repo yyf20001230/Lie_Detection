@@ -1,12 +1,18 @@
 # Lie detection
-This is a lie detection model that detects lies from video, audio, and textual input
+This is a lie detection model that detects lies from facial, audio, and textual input
 
-#### 
+## Lie detection with facial input
+Per-frame action unit(AU) and eye gaze vectors are extracted with openFace(https://github.com/TadasBaltrusaitis/OpenFace)
 
+## Lie detection with audio input
+Per-frame MFCCs, speech frequencies are extracted with openSmile(https://www.audeering.com/research/opensmile/)
 
-### Additional Features
+## Lie detection with textual input
+Work-in-progress
 
-#### Speaker Identification with machine learning 
+## Additional Features
+
+### Speaker Identification with machine learning 
 Follow the below steps to execute this feature,
   - Execute SpeakerIdentification.py file.
   - Install Required modules. 
