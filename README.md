@@ -10,9 +10,6 @@ Per-frame MFCCs, speech frequencies are extracted with openSmile(https://www.aud
 ## Lie detection with textual input
 Work-in-progress
 
-## Additional Features
-
-
 ## Util functions
 - Eye blinking counting 
 
@@ -22,7 +19,7 @@ Work-in-progress
 
 - MFCC visualizer
 
-### Speaker Identification with machine learning 
+#### Speaker Identification with machine learning 
 Follow the below steps to execute this feature,
   - Execute SpeakerIdentification.py file.
   - Install Required modules. 
