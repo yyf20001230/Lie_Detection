@@ -12,6 +12,16 @@ Work-in-progress
 
 ## Additional Features
 
+
+## Util functions
+- Eye blinking counting 
+
+- FER (Facial Emotional Recognition)
+
+- Gaze visualizer
+
+- MFCC visualizer
+
 ### Speaker Identification with machine learning 
 Follow the below steps to execute this feature,
   - Execute SpeakerIdentification.py file.
@@ -22,6 +32,7 @@ Things to do,
   - Four options are there when you run SpeakerIdentification.py i)Record audio for training ii)Train Model iii) Record Audio for Testing iv) Test Model(Follow the same order).
   - Store your audio recorded for training in training_set and testing audio in testing_set Folder.
   - training_set_addition.txt use this file to append trained files and testing_set_addition.txt for appending test files.
+
  
 ## Dataset
 
