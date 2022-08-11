@@ -41,6 +41,9 @@ Videos with both processed MFCC and Action Units(AU) are in the dataset folder.
 The raw dataset can be found here: https://web.eecs.umich.edu/~mihalcea/downloads.html
 Datasets labeled and annotated with Openface and Opensmile can be found here: https://drive.google.com/drive/folders/1_8pz1Te49nzkBE6FTizZfdNIt2hFBJn_?usp=sharing
 
+#### Additional dataset
+The MU3D database is also referenced in the model for testing purposes. It is available for download here: https://sc.lib.miamioh.edu/handle/2374.MIA/6067
+
 
 ## Paper Reference
 
